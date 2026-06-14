@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zestify</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- AUTH OVERLAY -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-card">
+
+            <div class="auth-logo">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Zestify</span>
+            </div>
+
+            <!-- Login Form -->
+            <div class="auth-form" id="loginForm">
+                <h2>Log in to Zestify</h2>
+                <p class="auth-subtitle">Your music, your world.</p>
+
+                <div class="auth-error" id="loginError"></div>
+
+                <div class="auth-field">
+                    <label>Email address</label>
+                    <input type="email" id="loginEmail" placeholder="name@example.com" autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label>Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+                        <i class="fa-regular fa-eye" id="toggleLoginPass"></i>
+                    </div>
+                </div>
+
+                <button class="auth-btn" id="loginBtn">
+                    <span id="loginBtnText">Log In</span>
+                    <i class="fa-solid fa-spinner fa-spin" id="loginSpinner"></i>
+                </button>
+
+                <p class="auth-switch">
+                    Don't have an account?
+                    <span id="goToSignup">Sign up for free</span>
+                </p>
+            </div>
+
+            <!-- Signup Form -->
+            <div class="auth-form" id="signupForm">
+                <h2>Create your account</h2>
+                <p class="auth-subtitle">Free forever. No credit card needed.</p>
+
+                <div class="auth-error" id="signupError"></div>
+
+                <div class="auth-field">
+                    <label>Username</label>
+                    <input type="text" id="signupUsername" placeholder="What should we call you?">
+                </div>
+                <div class="auth-field">
+                    <label>Email address</label>
+                    <input type="email" id="signupEmail" placeholder="name@example.com" autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label>Password</label>
+                    <div class="password-wrap">
+                        <input type="password" id="signupPassword" placeholder="At least 6 characters" autocomplete="new-password">
+                        <i class="fa-regular fa-eye" id="toggleSignupPass"></i>
+                    </div>
+                </div>
+
+                <button class="auth-btn" id="signupBtn">
+                    <span id="signupBtnText">Create Account</span>
+                    <i class="fa-solid fa-spinner fa-spin" id="signupSpinner"></i>
+                </button>
+
+                <p class="auth-switch">
+                    Already have an account?
+                    <span id="goToLogin">Log in</span>
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div class="app-shell" id="appShell">
+
+        <div class="container">
+            <div class="sticky-top-wrapper">
+                <header class="header">
+                    <div class="header-left-zone">
+                        <span id="welcomeGreeting">Good Morning</span>
+                    </div>
+
+                    <div class="header-center-zone">
+                        <div class="search-content" id="searchWrapper">
+                            <span id="searchIcon"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input type="text" id="searchbar" placeholder="What do you want to listen to?">
+                            <i class="fa-solid fa-xmark" id="clearSearch"></i>
+                        </div>
+                    </div>
+
+                    <div class="header-right-zone">
+                        <div class="nav-arrows">
+                            <button class="arrow-btn" id="backBtn" title="Navigating Back"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="arrow-btn" id="forwardBtn" title="Navigating Forward"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+
+                        <div class="profile-menu-container" id="profileMenuContainer">
+                            <div class="profile-avatar" id="profileAvatarBtn">S</div>
+                            <div class="profile-dropdown-menu" id="profileDropdown">
+                                <div class="dropdown-user-header">
+                                    <h4 id="dropdownProfileName">User</h4>
+                                    <span class="premium-badge" id="dropdownAccountStatus">Free</span>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <div class="menu-item" data-action="profile-insights">
+                                    <i class="fa-regular fa-user"></i> Profile Statistics
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                <div class="menu-item logout-trigger" id="logoutBtn">
+                                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <nav class="top-navigation-bar">
+                    <div class="nav-chip active" id="chipExplore" data-target="explore">
+                        <i class="fa-solid fa-compass"></i> Explore
+                    </div>
+                    <div class="nav-chip" id="chipLiked" data-target="liked">
+                        <i class="fa-solid fa-heart"></i> Liked Songs
+                    </div>
+                    <div class="nav-chip" id="chipPlaylists" data-target="playlists">
+                        <i class="fa-solid fa-music"></i> Playlists
+                    </div>
+                </nav>
+            </div>
+
+            <main class="main-scroll-area" id="mainScrollArea">
+                <div class="loading-placeholder">Loading your library...</div>
+            </main>
+        </div>
+
+        <footer class="footer-player" id="footerPlayer">
+            <!-- Soft animated glow — lights up while a track plays -->
+            <div class="footer-glow" id="footerGlow"></div>
+
+            <div class="curr-song-info">
+                <div class="cover-ring-wrap" id="coverRingWrap">
+                    <img src="" id="footerCover" alt="Now Playing">
+                </div>
+                <div class="song-info">
+                    <h3 id="footerTitle">Select a track</h3>
+                    <p id="footerArtist">Ready to stream</p>
+                </div>
+                <!-- Equalizer bars — shown only while playing -->
+                <div class="equalizer" id="footerEqualizer">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+
+            <div class="player-controls">
+                <div class="controls">
+                    <button id="shuffle" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
+                    <button id="prev"    title="Previous"><i class="fa-solid fa-backward-step"></i></button>
+                    <button id="play"    title="Play"><i class="fa-solid fa-circle-play"></i></button>
+                    <button id="next"    title="Next"><i class="fa-solid fa-forward-step"></i></button>
+                    <button id="loop"    title="Repeat"><i class="fa-solid fa-repeat"></i></button>
+                </div>
+                <div class="playback-bar">
+                    <span id="currentTime">0:00</span>
+                    <input type="range" id="progressBar" min="0" max="100" value="0" title="Playback Progress">
+                    <span id="totalTime">0:00</span>
+                </div>
+            </div>
+
+            <div class="extra-controls">
+                <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
+                <input type="range" id="volumeBar" min="0" max="100" value="70" title="Volume">
+            </div>
+        </footer>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
