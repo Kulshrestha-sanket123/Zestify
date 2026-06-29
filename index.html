@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zestify</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2305050a'/%3E%3Cpolygon points='19,3 9,17 16,17 13,29 23,15 16,15' fill='%2314C8C8'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -26,22 +27,24 @@
 
                 <div class="auth-error" id="loginError"></div>
 
-                <div class="auth-field">
-                    <label>Email address</label>
-                    <input type="email" id="loginEmail" placeholder="name@example.com" autocomplete="email">
-                </div>
-                <div class="auth-field">
-                    <label>Password</label>
-                    <div class="password-wrap">
-                        <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
-                        <i class="fa-regular fa-eye" id="toggleLoginPass"></i>
+                <form autocomplete="on" onsubmit="return false;">
+                    <div class="auth-field">
+                        <label for="loginEmail">Email address</label>
+                        <input type="email" id="loginEmail" placeholder="name@example.com" autocomplete="email">
                     </div>
-                </div>
+                    <div class="auth-field">
+                        <label for="loginPassword">Password</label>
+                        <div class="password-wrap">
+                            <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password">
+                            <i class="fa-regular fa-eye" id="toggleLoginPass"></i>
+                        </div>
+                    </div>
 
-                <button class="auth-btn" id="loginBtn">
-                    <span id="loginBtnText">Log In</span>
-                    <i class="fa-solid fa-spinner fa-spin" id="loginSpinner"></i>
-                </button>
+                    <button class="auth-btn" id="loginBtn" type="button">
+                        <span>Log In</span>
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </button>
+                </form>
 
                 <p class="auth-switch">
                     Don't have an account?
@@ -56,26 +59,28 @@
 
                 <div class="auth-error" id="signupError"></div>
 
-                <div class="auth-field">
-                    <label>Username</label>
-                    <input type="text" id="signupUsername" placeholder="What should we call you?">
-                </div>
-                <div class="auth-field">
-                    <label>Email address</label>
-                    <input type="email" id="signupEmail" placeholder="name@example.com" autocomplete="email">
-                </div>
-                <div class="auth-field">
-                    <label>Password</label>
-                    <div class="password-wrap">
-                        <input type="password" id="signupPassword" placeholder="At least 6 characters" autocomplete="new-password">
-                        <i class="fa-regular fa-eye" id="toggleSignupPass"></i>
+                <form autocomplete="on" onsubmit="return false;">
+                    <div class="auth-field">
+                        <label for="signupUsername">Username</label>
+                        <input type="text" id="signupUsername" placeholder="What should we call you?" autocomplete="username">
                     </div>
-                </div>
+                    <div class="auth-field">
+                        <label for="signupEmail">Email address</label>
+                        <input type="email" id="signupEmail" placeholder="name@example.com" autocomplete="email">
+                    </div>
+                    <div class="auth-field">
+                        <label for="signupPassword">Password</label>
+                        <div class="password-wrap">
+                            <input type="password" id="signupPassword" placeholder="At least 6 characters" autocomplete="new-password">
+                            <i class="fa-regular fa-eye" id="toggleSignupPass"></i>
+                        </div>
+                    </div>
 
-                <button class="auth-btn" id="signupBtn">
-                    <span id="signupBtnText">Create Account</span>
-                    <i class="fa-solid fa-spinner fa-spin" id="signupSpinner"></i>
-                </button>
+                    <button class="auth-btn" id="signupBtn" type="button">
+                        <span>Create Account</span>
+                        <i class="fa-solid fa-spinner fa-spin"></i>
+                    </button>
+                </form>
 
                 <p class="auth-switch">
                     Already have an account?
@@ -106,8 +111,8 @@
 
                     <div class="header-right-zone">
                         <div class="nav-arrows">
-                            <button class="arrow-btn" id="backBtn" title="Navigating Back"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button class="arrow-btn" id="forwardBtn" title="Navigating Forward"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button class="arrow-btn" id="backBtn"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button class="arrow-btn" id="forwardBtn"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
 
                         <div class="profile-menu-container" id="profileMenuContainer">
@@ -149,9 +154,10 @@
         </div>
 
         <footer class="footer-player" id="footerPlayer">
-            <!-- Soft animated glow — lights up while a track plays -->
+            <!-- Soft animated glow -->
             <div class="footer-glow" id="footerGlow"></div>
 
+            <!-- LEFT: song info -->
             <div class="curr-song-info">
                 <div class="cover-ring-wrap" id="coverRingWrap">
                     <img src="" id="footerCover" alt="Now Playing">
@@ -160,12 +166,12 @@
                     <h3 id="footerTitle">Select a track</h3>
                     <p id="footerArtist">Ready to stream</p>
                 </div>
-                <!-- Equalizer bars — shown only while playing -->
                 <div class="equalizer" id="footerEqualizer">
                     <span></span><span></span><span></span>
                 </div>
             </div>
 
+            <!-- CENTER: playback controls + progress bar (desktop) -->
             <div class="player-controls">
                 <div class="controls">
                     <button id="shuffle" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
@@ -176,16 +182,79 @@
                 </div>
                 <div class="playback-bar">
                     <span id="currentTime">0:00</span>
-                    <input type="range" id="progressBar" min="0" max="100" value="0" title="Playback Progress">
+                    <div class="range-track-wrap">
+                        <input type="range" id="progressBar" min="0" max="100" value="0">
+                    </div>
                     <span id="totalTime">0:00</span>
                 </div>
             </div>
 
+            <!-- MOBILE: full-width progress bar (row 2) -->
+            <div class="mobile-progress-row">
+                <span id="mobileCurrentTime">0:00</span>
+                <div class="range-track-wrap">
+                    <input type="range" id="mobileProgressBar" min="0" max="100" value="0">
+                </div>
+                <span id="mobileTotalTime">0:00</span>
+            </div>
+
+            <!-- RIGHT (desktop) / Row 3 (mobile): volume + lyrics -->
             <div class="extra-controls">
-                <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
-                <input type="range" id="volumeBar" min="0" max="100" value="70" title="Volume">
+                <!-- Desktop shuffle (hidden mobile — it's in center controls) -->
+                <button class="mobile-extra-shuffle" id="mobileShuffleBtn" title="Shuffle">
+                    <i class="fa-solid fa-shuffle"></i>
+                </button>
+
+                <!-- Volume wrapper — hover/click for vertical popup -->
+                <div class="volume-wrapper" id="volumeWrapper">
+                    <button class="vol-icon-btn" id="volumeIconBtn" title="Volume">
+                        <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
+                    </button>
+                    <!-- Desktop: horizontal bar -->
+                    <div class="desktop-vol-bar">
+                        <div class="range-track-wrap">
+                            <input type="range" id="volumeBar" min="0" max="100" value="70">
+                        </div>
+                    </div>
+                    <!-- Mobile: vertical popup -->
+                    <div class="vol-popup" id="volPopup">
+                        <span class="vol-popup-pct" id="volPopupPct">70%</span>
+                        <div class="vol-vertical-track" id="volVerticalTrack">
+                            <div class="vol-vertical-fill" id="volVerticalFill" style="height:70%"></div>
+                            <div class="vol-vertical-thumb" id="volVerticalThumb" style="top:calc(30% - 6px)"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile loop -->
+                <button class="mobile-extra-loop" id="mobileLoopBtn" title="Repeat">
+                    <i class="fa-solid fa-repeat"></i>
+                </button>
+
+                <!-- Lyrics button — icon only on mobile, icon+text on desktop -->
+                <button class="lyrics-btn" id="lyricsBtn" title="Show Lyrics" disabled>
+                    <i class="fa-solid fa-align-left"></i>
+                    <span class="lyrics-btn-text">Lyrics</span>
+                </button>
             </div>
         </footer>
+
+        <!-- LYRICS PANEL -->
+        <div class="lyrics-panel" id="lyricsPanel">
+            <div class="lyrics-panel-header">
+                <div class="lyrics-panel-track-info">
+                    <span class="lyrics-label">LYRICS</span>
+                    <h3 id="lyricsSongTitle">—</h3>
+                    <p id="lyricsArtistName">—</p>
+                </div>
+                <button class="lyrics-close-btn" id="lyricsCloseBtn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="lyrics-body" id="lyricsBody">
+                <p class="lyrics-placeholder">Play a song to see its lyrics.</p>
+            </div>
+        </div>
 
     </div>
 
