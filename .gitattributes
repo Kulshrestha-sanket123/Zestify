@@ -2,3 +2,4 @@
 *.css linguist-language=CSS
 *.html linguist-language=HTML
 .sfdx/* linguist-documentation
+*.cls linguist-vendored
