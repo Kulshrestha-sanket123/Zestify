@@ -2,69 +2,67 @@ document.addEventListener("DOMContentLoaded", () => {
     const API_BASE_URL = "http://localhost:5000/api";
     const SESSION_KEY  = "zestify_session";
 
-    // ── State ──────────────────────────────────────────────────
-    let dbTracks            = [];
-    let dbPlaylists         = {};
-    let dbLikedSongsIds     = [];
-    let dbUserProfile       = { name: "User", plan: "Free", minutesStreamed: 0 };
-
-    let audio               = new Audio();
+    let dbTracks = [];
+    let dbPlaylists = {};
+    let dbLikedSongsIds = [];
+    let dbUserProfile = { name: "User", plan: "Free", minutesStreamed: 0 };
+    let audio = new Audio();
     let currentPlaylistTracks = [];
-    let currentTrackIndex   = -1;
-    let isPlaying           = false;
-    let isShuffle           = false;
-    let isLoop              = false;
+    let currentTrackIndex = -1;
+    let isPlaying = false;
+    let isShuffle = false;
+    let isLoop = false;
+    let viewHistory = [];
+    let viewHistoryIndex = -1;
+    let _lastSaveTime = 0;
+    let _currentAccentHex = null;
 
-    let viewHistory         = [];
-    let viewHistoryIndex    = -1;
-
-    let _lastSaveTime       = 0;
-    let _currentAccentHex   = null;
-
-    // ── DOM refs ────────────────────────────────────────────────
-    const mainScrollArea  = document.getElementById("mainScrollArea");
-    const playBtn         = document.getElementById("play");
-    const prevBtn         = document.getElementById("prev");
-    const nextBtn         = document.getElementById("next");
-    const shuffleBtn      = document.getElementById("shuffle");
-    const loopBtn         = document.getElementById("loop");
-    const progressBar     = document.getElementById("progressBar");
-    const volumeBar       = document.getElementById("volumeBar");
+    const mainScrollArea = document.getElementById("mainScrollArea");
+    const playBtn = document.getElementById("play");
+    const prevBtn = document.getElementById("prev");
+    const nextBtn = document.getElementById("next");
+    const shuffleBtn = document.getElementById("shuffle");
+    const loopBtn = document.getElementById("loop");
+    const progressBar = document.getElementById("progressBar");
+    const volumeBar = document.getElementById("volumeBar");
     const currentTimeText = document.getElementById("currentTime");
-    const totalTimeText   = document.getElementById("totalTime");
-    const footerCover     = document.getElementById("footerCover");
-    const footerTitle     = document.getElementById("footerTitle");
-    const footerArtist    = document.getElementById("footerArtist");
+    const totalTimeText = document.getElementById("totalTime");
+    const footerCover = document.getElementById("footerCover");
+    const footerTitle = document.getElementById("footerTitle");
+    const footerArtist = document.getElementById("footerArtist");
     const footerEqualizer = document.getElementById("footerEqualizer");
-    const coverRingWrap   = document.getElementById("coverRingWrap");
-    const footerGlow      = document.getElementById("footerGlow");
-    const appShell        = document.getElementById("appShell");
+    const coverRingWrap = document.getElementById("coverRingWrap");
+    const footerGlow = document.getElementById("footerGlow");
+    const appShell = document.getElementById("appShell");
 
-    // Mobile-specific refs
+    //Mobile Specific References
     const mobileProgressBar = document.getElementById("mobileProgressBar");
     const mobileCurrentTime = document.getElementById("mobileCurrentTime");
-    const mobileTotalTime   = document.getElementById("mobileTotalTime");
-    const mobileShuffleBtn  = document.getElementById("mobileShuffleBtn");
-    const mobileLoopBtn     = document.getElementById("mobileLoopBtn");
+    const mobileTotalTime = document.getElementById("mobileTotalTime");
+    const mobileShuffleBtn = document.getElementById("mobileShuffleBtn");
+    const mobileLoopBtn = document.getElementById("mobileLoopBtn");
 
-    // Volume refs
-    const volumeIconBtn     = document.getElementById("volumeIconBtn");
-    const volumeIcon        = document.getElementById("volumeIcon");
-    const volPopup          = document.getElementById("volPopup");
-    const volVerticalTrack  = document.getElementById("volVerticalTrack");
-    const volVerticalFill   = document.getElementById("volVerticalFill");
-    const volVerticalThumb  = document.getElementById("volVerticalThumb");
-    const volPopupPct       = document.getElementById("volPopupPct");
+    //Volume References
+    const volumeIconBtn = document.getElementById("volumeIconBtn");
+    const volumeIcon = document.getElementById("volumeIcon");
+    const volPopup = document.getElementById("volPopup");
+    const volVerticalTrack = document.getElementById("volVerticalTrack");
+    const volVerticalFill = document.getElementById("volVerticalFill");
+    const volVerticalThumb = document.getElementById("volVerticalThumb");
+    const volPopupPct = document.getElementById("volPopupPct");
 
-    // ── Helpers ─────────────────────────────────────────────────
-    function getCover(track)    { return track.cover || track.coverPath || ''; }
-    function getAudioSrc(track) { return track.songUrl || track.filePath || ''; }
+    function getCover(track) {
+        return track.cover || track.coverPath || '';
+    }
+    function getAudioSrc(track) {
+        return track.songUrl || track.filePath || '';
+    }
     function formatTime(secs) {
         const m = Math.floor(secs / 60), s = Math.floor(secs % 60);
         return `${m}:${s < 10 ? '0' : ''}${s}`;
     }
 
-    // ── Range bar colored fill helper ───────────────────────────
+    //function for updating the colours of both progress & Volume bars
     function updateRangeFill(inputEl) {
         if (!inputEl) return;
         const min = parseFloat(inputEl.min) || 0;
@@ -73,15 +71,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const pct = ((val - min) / (max - min)) * 100;
         inputEl.style.setProperty('--fill-pct', pct.toFixed(1) + '%');
     }
-
-    // Init fill on load
+    //Updation as per the current values of both bars
     if (progressBar)     updateRangeFill(progressBar);
     if (mobileProgressBar) updateRangeFill(mobileProgressBar);
     if (volumeBar)       { audio.volume = (volumeBar.value / 100); updateRangeFill(volumeBar); }
 
-    // ============================================================
-    // FEATURE 1 — SESSION PERSISTENCE
-    // ============================================================
+
+    //Session save & Restore
     function saveSession() {
         const now = Date.now();
         if (now - _lastSaveTime < 5000) return;
@@ -96,10 +92,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 isShuffle,
                 isLoop
             }));
-        } catch (e) { /* quota exceeded */ }
+        } catch (e) {
+            console.warn("Session save failed:", e);
+        }
     }
 
-    function saveSessionNow() { _lastSaveTime = 0; saveSession(); }
+    function saveSessionNow() {
+        _lastSaveTime = 0; saveSession();
+    }
 
     function restoreSession() {
         try {
@@ -113,8 +113,14 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             if (idx === -1) return;
 
-            if (s.isShuffle) { isShuffle = true; syncShuffleLoop(); }
-            if (s.isLoop)    { isLoop    = true; syncShuffleLoop(); }
+            if (s.isShuffle) {
+                isShuffle = true;
+                syncShuffleLoop();
+            }
+            if (s.isLoop) {
+                isLoop = true;
+                syncShuffleLoop();
+            }
 
             const vol = parseFloat(s.volume);
             if (!isNaN(vol)) {
@@ -132,12 +138,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (s.timestamp > 0 && s.timestamp < audio.duration) {
                     audio.currentTime = s.timestamp;
                     const pct = (s.timestamp / audio.duration) * 100;
-                    if (progressBar) { progressBar.value = pct; updateRangeFill(progressBar); }
-                    if (mobileProgressBar) { mobileProgressBar.value = pct; updateRangeFill(mobileProgressBar); }
+                    if (progressBar) {
+                        progressBar.value = pct;
+                        updateRangeFill(progressBar);
+                    }
+                    if (mobileProgressBar) {
+                        mobileProgressBar.value = pct;
+                        updateRangeFill(mobileProgressBar);
+                    }
                     currentTimeText.textContent = formatTime(s.timestamp);
                     totalTimeText.textContent   = formatTime(audio.duration);
-                    if (mobileCurrentTime) mobileCurrentTime.textContent = formatTime(s.timestamp);
-                    if (mobileTotalTime)   mobileTotalTime.textContent   = formatTime(audio.duration);
+                    if (mobileCurrentTime) {
+                        mobileCurrentTime.textContent = formatTime(s.timestamp);
+                    }
+                    if (mobileTotalTime) {
+                        mobileTotalTime.textContent   = formatTime(audio.duration);
+                    }
                 }
             }, { once: true });
 
@@ -147,15 +163,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ============================================================
-    // FEATURE 2 — DYNAMIC COLOR EXTRACTION
-    // ============================================================
+
+    //DYNAMIC COLOR EXTRACTION
     const _colorCanvas = document.createElement("canvas");
     _colorCanvas.width = _colorCanvas.height = 64;
     const _colorCtx = _colorCanvas.getContext("2d", { willReadFrequently: true });
 
     function extractDominantColor(imageUrl, callback) {
-        if (!imageUrl) { callback(null); return; }
+        if(!imageUrl) {
+            callback(null);
+            return;
+        }
         const img = new Image();
         img.crossOrigin = "anonymous";
 
@@ -184,10 +202,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 let bestKey = null, bestScore = 0;
                 for (const [key, score] of Object.entries(buckets)) {
-                    if (score > bestScore) { bestScore = score; bestKey = key; }
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestKey = key;
+                    }
                 }
 
-                if (!bestKey) { callback(null); return; }
+                if (!bestKey) {
+                    callback(null);
+                    return;
+                }
                 let [r, g, b] = bestKey.split(",").map(Number);
 
                 const mix = 0.42;
@@ -209,7 +233,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applyAccentColor(color) {
-        if (!color) { resetAccentColor(); return; }
+        if (!color) {
+            resetAccentColor();
+            return;
+        }
 
         const hex = rgbToHex(color.r, color.g, color.b);
         if (hex === _currentAccentHex) return;
@@ -227,8 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (footerGlow) {
             footerGlow.style.transition = "background 1.4s ease";
-            footerGlow.style.background =
-                `radial-gradient(ellipse at 8% 50%, rgba(${r},${g},${b},0.28), transparent 60%)`;
+            footerGlow.style.background =`radial-gradient(ellipse at 8% 50%, rgba(${r},${g},${b},0.28), transparent 60%)`;
         }
 
         let blob = document.getElementById("dynamicBlob");
@@ -264,11 +290,17 @@ document.addEventListener("DOMContentLoaded", () => {
         _currentAccentHex = null;
 
         const header = document.querySelector(".sticky-top-wrapper");
-        if (header) { header.style.transition = "background 1.4s ease"; header.style.background = ""; }
+        if (header) {
+            header.style.transition = "background 1.4s ease";
+            header.style.background = "";
+        }
         const greeting = document.getElementById("welcomeGreeting");
         if (greeting) greeting.style.color = "";
 
-        if (footerGlow) { footerGlow.style.transition = "background 1.4s ease"; footerGlow.style.background = ""; }
+        if (footerGlow) {
+            footerGlow.style.transition = "background 1.4s ease";
+            footerGlow.style.background = "";
+        }
 
         const blob = document.getElementById("dynamicBlob");
         if (blob) blob.style.background = "rgba(20,200,200,0.18)";
@@ -276,9 +308,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (blob2) blob2.style.background = "rgba(120,70,255,0.12)";
     }
 
-    // ============================================================
-    // NAV HISTORY
-    // ============================================================
+
+    // NAVIGATION HISTORY
     function pushView(renderFn) {
         if (viewHistoryIndex < viewHistory.length - 1)
             viewHistory = viewHistory.slice(0, viewHistoryIndex + 1);
@@ -291,20 +322,26 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateNavArrows() {
         const back    = document.getElementById("backBtn");
         const forward = document.getElementById("forwardBtn");
-        if (back)    back.disabled    = viewHistoryIndex <= 0;
+        if (back) back.disabled = viewHistoryIndex <= 0;
         if (forward) forward.disabled = viewHistoryIndex >= viewHistory.length - 1;
     }
 
     document.getElementById("backBtn").addEventListener("click", () => {
-        if (viewHistoryIndex > 0) { viewHistoryIndex--; updateNavArrows(); viewHistory[viewHistoryIndex](); }
+        if(viewHistoryIndex > 0) {
+            viewHistoryIndex--; updateNavArrows();
+            viewHistory[viewHistoryIndex]();
+        }
     });
     document.getElementById("forwardBtn").addEventListener("click", () => {
-        if (viewHistoryIndex < viewHistory.length - 1) { viewHistoryIndex++; updateNavArrows(); viewHistory[viewHistoryIndex](); }
+        if(viewHistoryIndex < viewHistory.length - 1) {
+            viewHistoryIndex++;
+            updateNavArrows();
+            viewHistory[viewHistoryIndex]();
+        }
     });
 
-    // ============================================================
+
     // PLAY STATE SYNC
-    // ============================================================
     function syncPlayingUI(playing) {
         isPlaying = playing;
         playBtn.innerHTML = playing
@@ -343,16 +380,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const hasTrack = currentTrackIndex !== -1;
         footerEqualizer.classList.toggle("playing", playing && hasTrack);
-        coverRingWrap.classList.toggle("playing",   playing && hasTrack);
-        footerGlow.classList.toggle("active",        playing && hasTrack);
+        coverRingWrap.classList.toggle("playing", playing && hasTrack);
+        footerGlow.classList.toggle("active", playing && hasTrack);
     }
 
-    // ============================================================
-    // CARD GENERATOR
-    // ============================================================
+
+    // SONG CARD GENERATOR FUNCTION
     function generateCards(tracks) {
-        if (!tracks || tracks.length === 0)
-            return `<p class="empty-msg">No tracks found.</p>`;
+        if (!tracks || tracks.length === 0) return `<p class="empty-msg">No tracks found.</p>`;
 
         const activeId = currentPlaylistTracks[currentTrackIndex]
             ? (currentPlaylistTracks[currentTrackIndex]._id || currentPlaylistTracks[currentTrackIndex].id)
@@ -393,9 +428,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }).join('');
     }
 
-    // ============================================================
-    // EXPLORE VIEW
-    // ============================================================
+
+    // EXPLORE VIEW FEATURE
     function renderExploreView() {
         if (dbTracks.length === 0) {
             mainScrollArea.innerHTML = `<div class="loading-placeholder">No tracks in database.</div>`;
@@ -420,9 +454,8 @@ document.addEventListener("DOMContentLoaded", () => {
         mainScrollArea.innerHTML = html;
     }
 
-    // ============================================================
+
     // DATABASE SYNC
-    // ============================================================
     async function syncDatabaseInstance() {
         try {
             mainScrollArea.innerHTML = `<div class="loading-placeholder"><i class="fa-solid fa-spinner fa-spin"></i> Loading...</div>`;
@@ -464,16 +497,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ============================================================
-    // SEARCH
-    // ============================================================
+
+    // SEARCH FEATURE
     const searchBar   = document.getElementById("searchbar");
     const clearSearch = document.getElementById("clearSearch");
 
     searchBar.addEventListener("input", (e) => {
         const val = e.target.value.trim().toLowerCase();
         clearSearch.style.display = val ? "block" : "none";
-        if (!val) { renderExploreView(); return; }
+        if (!val) {
+            renderExploreView();
+            return;
+        }
         const filtered = dbTracks.filter(t =>
             (t.songName   || '').toLowerCase().includes(val) ||
             (t.artistName || '').toLowerCase().includes(val)
@@ -490,9 +525,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderExploreView();
     });
 
-    // ============================================================
-    // PLAYBACK ENGINE
-    // ============================================================
+
+    // PLAYBACK ENGINE FUNCTION
     function loadTrack(index) {
         if (index < 0 || index >= currentPlaylistTracks.length) return;
         currentTrackIndex = index;
@@ -502,14 +536,14 @@ document.addEventListener("DOMContentLoaded", () => {
         audio.src = getAudioSrc(track);
         audio.load();
 
-        footerCover.src          = cover;
-        footerTitle.textContent  = track.songName   || 'Unknown Title';
+        footerCover.src = cover;
+        footerTitle.textContent = track.songName || 'Unknown Title';
         footerArtist.textContent = track.artistName || 'Unknown Artist';
 
         saveSessionNow();
 
         lyricsBtn.disabled = false;
-        lyricsSongTitle.textContent  = track.songName   || '—';
+        lyricsSongTitle.textContent = track.songName || '—';
         lyricsArtistName.textContent = track.artistName || '—';
 
         if (_lyricsOpen) {
@@ -551,7 +585,8 @@ document.addEventListener("DOMContentLoaded", () => {
         if (isPlaying) audio.play().then(() => syncPlayingUI(true)).catch(() => {});
     });
 
-    // ── Shuffle / Loop sync ──
+
+    //SHUFFLE FEATURE FUNCTION
     function syncShuffleLoop() {
         shuffleBtn.classList.toggle("active", isShuffle);
         mobileShuffleBtn?.classList.toggle("active", isShuffle);
@@ -586,7 +621,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const cur = formatTime(audio.currentTime);
         const tot = formatTime(audio.duration);
 
-        // Desktop progress
+        // Desktop progress bar
         if (progressBar) {
             progressBar.value = pct;
             updateRangeFill(progressBar);
@@ -594,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
         currentTimeText.textContent = cur;
         totalTimeText.textContent   = tot;
 
-        // Mobile progress
+        // Mobile progress bar
         if (mobileProgressBar) {
             mobileProgressBar.value = pct;
             updateRangeFill(mobileProgressBar);
@@ -643,9 +678,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ============================================================
+
     // VOLUME ICON — mute toggle
-    // ============================================================
     function updateVolumeIcon(vol) {
         if (!volumeIcon) return;
         if (audio.muted || vol === 0) {
@@ -657,7 +691,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Desktop volume icon click = mute toggle
+    // Desktop Volume Icon Mute feature
     if (volumeIconBtn && window.innerWidth > 768) {
         volumeIconBtn.addEventListener("click", () => {
             audio.muted = !audio.muted;
@@ -665,9 +699,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ============================================================
-    // VERTICAL VOLUME POPUP (mobile)
-    // ============================================================
+
+    // VERTICAL VOLUME bar (mobile)
     let _volPopupOpen = false;
     let _volDragging  = false;
 
@@ -741,16 +774,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.addEventListener("mouseup",  () => { _volDragging = false; });
     document.addEventListener("touchend", () => { _volDragging = false; });
 
-    // Close vol popup when clicking outside
+    // Close volume bar popup
     document.addEventListener("click", (e) => {
         if (_volPopupOpen && volumeIconBtn && !volumeIconBtn.closest(".volume-wrapper").contains(e.target)) {
             closeVolPopup();
         }
     });
 
-    // ============================================================
+
     // LYRICS PANEL
-    // ============================================================
     const lyricsBtn         = document.getElementById("lyricsBtn");
     const lyricsPanel       = document.getElementById("lyricsPanel");
     const lyricsCloseBtn    = document.getElementById("lyricsCloseBtn");
@@ -761,7 +793,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let _lyricsCache          = {};
     let _lyricsOpen           = false;
     let _lyricsFetchController = null;
-    let _syncedLyricLines     = [];   // [{time, text, el}, ...]
+    let _syncedLyricLines     = [];
     let _currentLyricIdx      = -1;
 
     function openLyricsPanel() {
@@ -796,7 +828,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // ── Synced lyric highlight ──────────────────────────────────
+    //Lyrics Highlightning
     function syncLyricHighlight(currentTime) {
         if (_syncedLyricLines.length === 0) return;
 
@@ -815,13 +847,12 @@ document.addEventListener("DOMContentLoaded", () => {
             if (i < newIdx) line.el.classList.add("lyric-past");
             else if (i === newIdx) {
                 line.el.classList.add("lyric-active");
-                // Smooth scroll active line into view
                 line.el.scrollIntoView({ behavior: "smooth", block: "center" });
             }
         });
     }
 
-    // ── Parse LRC timestamps ────────────────────────────────────
+    //Parse LRC timestamps
     function parseLRC(lrc) {
         const lines  = [];
         const regex  = /\[(\d{2}):(\d{2})[.:](\d{2,3})\](.*)/g;
@@ -890,7 +921,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 const match = Array.isArray(data) && data.find(r => r.plainLyrics || r.syncedLyrics);
 
                 if (match) {
-                    // Prefer synced lyrics for line-by-line highlight
                     if (match.syncedLyrics) {
                         const parsed = parseLRC(match.syncedLyrics);
                         if (parsed.length > 0) {
@@ -901,7 +931,6 @@ document.addEventListener("DOMContentLoaded", () => {
                         }
                     }
 
-                    // Fallback: plain lyrics
                     if (match.plainLyrics) {
                         const cleaned = match.plainLyrics
                             .replace(/\r\n/g, '\n')
@@ -954,12 +983,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 _syncedLyricLines.push({ time: lineData.time, text: lineData.text, el: lineEl });
             });
 
-            // Highlight current position immediately
             if (audio.currentTime > 0) {
                 syncLyricHighlight(audio.currentTime);
             }
         } else if (plainText) {
-            // Plain lyrics — render as pre block
             const pre = document.createElement('pre');
             pre.className = 'lyrics-text';
             pre.textContent = plainText;
@@ -1011,9 +1038,8 @@ document.addEventListener("DOMContentLoaded", () => {
     lyricsBtn.addEventListener("click", toggleLyricsPanel);
     lyricsCloseBtn.addEventListener("click", closeLyricsPanel);
 
-    // ============================================================
-    // VIEW RENDERERS
-    // ============================================================
+
+    //Playlist Render function
     function renderPlaylistInnerSections(title, trackIdArray, isLikedView = false) {
         const listTracks = dbTracks.filter(t => trackIdArray.includes(t._id || t.id));
         const activeId   = currentPlaylistTracks[currentTrackIndex]
@@ -1049,7 +1075,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         const isActive = trackId === activeId && isPlaying;
                         return `
                             <div class="spotify-track-row ${trackId === activeId ? 'active-playing' : ''}"
-                                 data-id="${trackId}" data-context="${title}">
+                                data-id="${trackId}" data-context="${title}">
                                 <div class="track-index">
                                     <span class="track-index-number${isActive ? ' hidden' : ''}">${idx + 1}</span>
                                     <div class="equalizer${isActive ? ' playing' : ' hidden'}">
@@ -1115,34 +1141,34 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>`;
     }
 
-    // ============================================================
+
     // NAV CHIPS
-    // ============================================================
     document.querySelectorAll(".nav-chip").forEach(chip => {
         chip.addEventListener("click", () => {
             document.querySelectorAll(".nav-chip").forEach(c => c.classList.remove("active"));
             chip.classList.add("active");
             const target = chip.getAttribute("data-target");
-            if (target === "explore")   pushView(renderExploreView);
-            if (target === "liked")     pushView(() => renderPlaylistInnerSections("Liked Songs", dbLikedSongsIds, true));
+            if (target === "explore") pushView(renderExploreView);
+            if (target === "liked") pushView(() => renderPlaylistInnerSections("Liked Songs", dbLikedSongsIds, true));
             if (target === "playlists") pushView(renderPlaylistsDirectory);
         });
     });
 
-    // ============================================================
+
     // PROFILE DROPDOWN
-    // ============================================================
     const profileAvatarBtn = document.getElementById("profileAvatarBtn");
     const profileDropdown  = document.getElementById("profileDropdown");
-    profileAvatarBtn.addEventListener("click", (e) => { e.stopPropagation(); profileDropdown.classList.toggle("show"); });
+    profileAvatarBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        profileDropdown.classList.toggle("show");
+    });
     document.addEventListener("click", (e) => {
         if (!profileDropdown.contains(e.target) && e.target !== profileAvatarBtn)
             profileDropdown.classList.remove("show");
     });
 
-    // ============================================================
+
     // SEARCH — mobile expand
-    // ============================================================
     const searchWrapper = document.getElementById("searchWrapper");
     const searchIconEl  = document.getElementById("searchIcon");
 
@@ -1170,7 +1196,6 @@ document.addEventListener("DOMContentLoaded", () => {
             searchWrapper.classList.remove("mobile-expanded");
             searchBar.style.display = "";
             clearSearch.style.display = searchBar.value ? "block" : "none";
-            // Close vol popup if screen resized to desktop
             closeVolPopup();
         } else {
             if (!searchWrapper.classList.contains("mobile-expanded")) {
@@ -1180,9 +1205,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ============================================================
+
     // API HELPERS
-    // ============================================================
     function authFetch(url, opts = {}) {
         const token = localStorage.getItem("token");
         return fetch(url, {
@@ -1194,15 +1218,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
-    const updateLikeStatusOnDB   = (id, add) => authFetch(`${API_BASE_URL}/user/like`,       { method: "POST", body: JSON.stringify({ songId: id, isAdding: add }) }).catch(console.error);
-    const createPlaylistOnDB     = (name)    => authFetch(`${API_BASE_URL}/playlists`,       { method: "POST", body: JSON.stringify({ name }) }).catch(console.error);
+    const updateLikeStatusOnDB = (id, add) => authFetch(`${API_BASE_URL}/user/like`, { method: "POST", body: JSON.stringify({ songId: id, isAdding: add }) }).catch(console.error);
+    const createPlaylistOnDB = (name) => authFetch(`${API_BASE_URL}/playlists`, { method: "POST", body: JSON.stringify({ name }) }).catch(console.error);
     const addTrackToPlaylistOnDB = (pName, id) => authFetch(`${API_BASE_URL}/playlists/add`, { method: "PUT",  body: JSON.stringify({ playlistName: pName, trackId: id }) }).catch(console.error);
 
-    // ============================================================
-    // GLOBAL EVENT DELEGATION
-    // ============================================================
-    document.addEventListener("click", async (e) => {
 
+    // GLOBAL EVENT DELEGATION
+    document.addEventListener("click", async (e) => {
         const menuItem = e.target.closest(".menu-item");
         if (menuItem) {
             if (menuItem.getAttribute("data-action") === "profile-insights") {
@@ -1215,28 +1237,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (e.target.closest("#createNewPlaylistBtn")) {
             const name = prompt("Enter playlist name:");
-            if (name?.trim() && !dbPlaylists[name.trim()]) {
+            if(name?.trim() && !dbPlaylists[name.trim()]) {
                 dbPlaylists[name.trim()] = [];
                 await createPlaylistOnDB(name.trim());
                 renderPlaylistsDirectory();
-            } else if (name?.trim()) { alert("Playlist already exists."); }
+            } else if(name?.trim()) {
+                alert("Playlist already exists.");
+            }
             return;
         }
 
         const folder = e.target.closest(".playlist-folder-card");
-        if (folder) {
+        if(folder) {
             const pName = folder.getAttribute("data-playlist");
             pushView(() => renderPlaylistInnerSections(pName, dbPlaylists[pName], false));
             return;
         }
 
         const heart = e.target.closest(".heart-icon");
-        if (heart) {
+        if(heart) {
             e.stopPropagation();
             const id = heart.getAttribute("data-id");
             const adding = !dbLikedSongsIds.includes(id);
-            if (adding) { dbLikedSongsIds.push(id); heart.classList.add("liked"); }
-            else { dbLikedSongsIds = dbLikedSongsIds.filter(i => i !== id); heart.classList.remove("liked"); }
+            if(adding) {
+                dbLikedSongsIds.push(id);
+                heart.classList.add("liked");
+            }
+            else {
+                dbLikedSongsIds = dbLikedSongsIds.filter(i => i !== id); 
+                heart.classList.remove("liked"); 
+            }
             await updateLikeStatusOnDB(id, adding);
             if (document.querySelector(".nav-chip.active")?.getAttribute("data-target") === "liked")
                 renderPlaylistInnerSections("Liked Songs", dbLikedSongsIds, true);
@@ -1244,35 +1274,46 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const addIcon = e.target.closest(".add-icon");
-        if (addIcon) {
+        if(addIcon) {
             e.stopPropagation();
             const id    = addIcon.getAttribute("data-id");
             const names = Object.keys(dbPlaylists);
-            if (!names.length) { alert("Create a playlist first."); return; }
+            if(!names.length) {
+                alert("Create a playlist first.");
+                return;
+            }
             const target = prompt(`Playlists: ${names.join(", ")}\n\nEnter playlist name:`);
-            if (target && dbPlaylists[target] !== undefined) {
-                if (!dbPlaylists[target].includes(id)) {
+            if(target && dbPlaylists[target] !== undefined) {
+                if(!dbPlaylists[target].includes(id)) {
                     dbPlaylists[target].push(id);
                     await addTrackToPlaylistOnDB(target, id);
                     alert(`Added to "${target}".`);
-                } else { alert("Already in playlist."); }
-            } else if (target) { alert(`"${target}" not found.`); }
+                } else {
+                    alert("Already in playlist.");
+                }
+            } else if(target) {
+                alert(`"${target}" not found.`);
+            }
             return;
         }
 
         const card = e.target.closest(".song-card:not(.playlist-folder-card)");
-        if (card) {
+        if(card) {
             const trackId = card.getAttribute("data-id");
             currentPlaylistTracks = [...dbTracks];
             const idx = currentPlaylistTracks.findIndex(t => t._id === trackId || t.id === trackId);
-            if (idx === -1) return;
-            if (idx === currentTrackIndex) { togglePlay(); }
-            else { loadTrack(idx); audio.play().then(() => syncPlayingUI(true)).catch(() => {}); }
+            if(idx === -1) return;
+            if(idx === currentTrackIndex) {
+                togglePlay();
+            }
+            else {
+                loadTrack(idx); audio.play().then(() => syncPlayingUI(true)).catch(() => {});
+            }
             return;
         }
 
         const row = e.target.closest(".spotify-track-row");
-        if (row) {
+        if(row) {
             const trackId = row.getAttribute("data-id");
             const context = row.getAttribute("data-context");
             currentPlaylistTracks = dbPlaylists[context]
@@ -1281,15 +1322,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? dbTracks.filter(t => dbLikedSongsIds.includes(t._id || t.id))
                     : [...dbTracks];
             const idx = currentPlaylistTracks.findIndex(t => t._id === trackId || t.id === trackId);
-            if (idx === -1) return;
+            if(idx === -1) return;
             loadTrack(idx);
             audio.play().then(() => syncPlayingUI(true)).catch(() => {});
         }
     });
 
-    // ============================================================
-    // AUTH
-    // ============================================================
+
+    // AUTHENTICATION
     const authOverlay = document.getElementById("authOverlay");
     const loginForm   = document.getElementById("loginForm");
     const signupForm  = document.getElementById("signupForm");
@@ -1299,15 +1339,21 @@ document.addEventListener("DOMContentLoaded", () => {
             const inp  = document.getElementById(inputId);
             const icon = document.getElementById(toggleId);
             const show = inp.type === "password";
-            inp.type       = show ? "text" : "password";
+            inp.type = show ? "text" : "password";
             icon.className = show ? "fa-regular fa-eye-slash" : "fa-regular fa-eye";
         });
     }
     bindPasswordToggle("toggleLoginPass",  "loginPassword");
     bindPasswordToggle("toggleSignupPass", "signupPassword");
 
-    function showLoginForm()  { signupForm.style.display = "none";  loginForm.style.display  = "block"; }
-    function showSignupForm() { loginForm.style.display  = "none";  signupForm.style.display = "block"; }
+    function showLoginForm() {
+        signupForm.style.display = "none";
+        loginForm.style.display = "block";
+    }
+    function showSignupForm() {
+        loginForm.style.display = "none";
+        signupForm.style.display = "block";
+    }
 
     document.getElementById("goToSignup").addEventListener("click", () => { showSignupForm(); hideError("signupError"); });
     document.getElementById("goToLogin").addEventListener("click",  () => { showLoginForm();  hideError("loginError");  });
@@ -1333,17 +1379,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const n = document.getElementById("dropdownProfileName");
         const p = document.getElementById("dropdownAccountStatus");
         const a = document.getElementById("profileAvatarBtn");
-        if (n) n.textContent = profile.name || "User";
-        if (p) p.textContent = profile.plan || "Free";
-        if (a) a.textContent = (profile.name || "U").charAt(0).toUpperCase();
+        if(n) n.textContent = profile.name || "User";
+        if(p) p.textContent = profile.plan || "Free";
+        if(a) a.textContent = (profile.name || "U").charAt(0).toUpperCase();
     }
 
-    // LOGIN
+    // LOGIN FUNCTIONALITY
     const loginBtn = document.getElementById("loginBtn");
     loginBtn.addEventListener("click", async () => {
         const email    = document.getElementById("loginEmail").value.trim();
         const password = document.getElementById("loginPassword").value;
-        if (!email || !password) { showError("loginError", "Please enter your email and password."); return; }
+        if(!email || !password) {
+            showError("loginError", "Please enter your email and password.");
+            return;
+        }
 
         setButtonLoading(loginBtn, true, "Log In", "Logging in...");
         hideError("loginError");
@@ -1353,14 +1402,19 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ email, password })
             });
             const data = await res.json();
-            if (!res.ok) {
+            if(!res.ok) {
                 showError("loginError", data.msg || "Invalid email or password.");
             } else {
                 localStorage.setItem("token", data.token);
-                if (data.profile)    { dbUserProfile = data.profile; updateHeaderProfile(data.profile); }
-                if (data.likedSongs) dbLikedSongsIds = data.likedSongs;
-                showApp();
-                syncDatabaseInstance();
+                if(data.profile) {
+                    dbUserProfile = data.profile;
+                    updateHeaderProfile(data.profile);
+                }
+                if (data.likedSongs) {
+                    dbLikedSongsIds = data.likedSongs;
+                    showApp();
+                    syncDatabaseInstance();
+                }
             }
         } catch { showError("loginError", "Could not connect to server. Is the backend running?"); }
         finally  { setButtonLoading(loginBtn, false, "Log In", "Logging in..."); }
@@ -1369,14 +1423,20 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") loginBtn.click(); });
     });
 
-    // SIGNUP
+    // SIGNUP FUNCTIONALITY
     const signupBtn = document.getElementById("signupBtn");
     signupBtn.addEventListener("click", async () => {
         const username = document.getElementById("signupUsername").value.trim();
         const email    = document.getElementById("signupEmail").value.trim();
         const password = document.getElementById("signupPassword").value;
-        if (!username || !email || !password) { showError("signupError", "All fields are required."); return; }
-        if (password.length < 6) { showError("signupError", "Password must be at least 6 characters."); return; }
+        if(!username || !email || !password) {
+            showError("signupError", "All fields are required.");
+            return;
+        }
+        if(password.length < 6) {
+            showError("signupError", "Password must be at least 6 characters.");
+            return;
+        }
 
         setButtonLoading(signupBtn, true, "Create Account", "Creating account...");
         hideError("signupError");
@@ -1386,7 +1446,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ username, email, password })
             });
             const data = await res.json();
-            if (!res.ok) {
+            if(!res.ok) {
                 showError("signupError", data.msg || "Signup failed. Please try again.");
             } else {
                 showLoginForm();
@@ -1394,13 +1454,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 document.getElementById("loginEmail").value = email;
             }
         } catch { showError("signupError", "Could not connect to server. Is the backend running?"); }
-        finally  { setButtonLoading(signupBtn, false, "Create Account", "Creating account..."); }
+        finally { setButtonLoading(signupBtn, false, "Create Account", "Creating account..."); }
     });
     ["signupUsername", "signupEmail", "signupPassword"].forEach(id => {
         document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") signupBtn.click(); });
     });
 
-    // LOGOUT
+    // LOGOUT FUNCTIONALITY
     document.getElementById("logoutBtn").addEventListener("click", () => {
         localStorage.removeItem("token");
         localStorage.removeItem(SESSION_KEY);
@@ -1426,10 +1486,16 @@ document.addEventListener("DOMContentLoaded", () => {
         _syncedLyricLines = [];
         _currentLyricIdx  = -1;
 
-        if (progressBar) { progressBar.value = 0; updateRangeFill(progressBar); }
-        if (mobileProgressBar) { mobileProgressBar.value = 0; updateRangeFill(mobileProgressBar); }
+        if(progressBar) {
+            progressBar.value = 0;
+            updateRangeFill(progressBar);
+        }
+        if(mobileProgressBar) {
+            mobileProgressBar.value = 0;
+            updateRangeFill(mobileProgressBar);
+        }
 
-        document.getElementById("loginEmail").value    = "";
+        document.getElementById("loginEmail").value = "";
         document.getElementById("loginPassword").value = "";
         hideError("loginError");
         hideError("signupError");
@@ -1437,9 +1503,8 @@ document.addEventListener("DOMContentLoaded", () => {
         showAuth();
     });
 
-    // ============================================================
-    // INIT
-    // ============================================================
+
+    // INIT FUNCTION
     function updateGreeting() {
         const h = new Date().getHours();
         const el = document.getElementById("welcomeGreeting");
@@ -1452,6 +1517,11 @@ document.addEventListener("DOMContentLoaded", () => {
     updateNavArrows();
     syncVerticalVolume(volumeBar ? parseInt(volumeBar.value) : 70);
 
-    if (localStorage.getItem("token")) { showApp(); syncDatabaseInstance(); }
-    else                               { showAuth(); }
+    if(localStorage.getItem("token")) {
+        showApp();
+        syncDatabaseInstance();
+    }
+    else {
+        showAuth();
+    }
 });

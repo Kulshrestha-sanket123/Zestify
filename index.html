@@ -24,7 +24,6 @@
             <div class="auth-form" id="loginForm">
                 <h2>Log in to Zestify</h2>
                 <p class="auth-subtitle">Your music, your world.</p>
-
                 <div class="auth-error" id="loginError"></div>
 
                 <form autocomplete="on" onsubmit="return false;">
@@ -111,8 +110,8 @@
 
                     <div class="header-right-zone">
                         <div class="nav-arrows">
-                            <button class="arrow-btn" id="backBtn"><i class="fa-solid fa-chevron-left"></i></button>
-                            <button class="arrow-btn" id="forwardBtn"><i class="fa-solid fa-chevron-right"></i></button>
+                            <button class="arrow-btn" id="backBtn"><i class="fa-solid fa-chevron-left" title="Navigate Back"></i></button>
+                            <button class="arrow-btn" id="forwardBtn"><i class="fa-solid fa-chevron-right" title="Navigate Forward"></i></button>
                         </div>
 
                         <div class="profile-menu-container" id="profileMenuContainer">
@@ -157,7 +156,7 @@
             <!-- Soft animated glow -->
             <div class="footer-glow" id="footerGlow"></div>
 
-            <!-- LEFT: song info -->
+            <!-- Left part(song info) -->
             <div class="curr-song-info">
                 <div class="cover-ring-wrap" id="coverRingWrap">
                     <img src="" id="footerCover" alt="Now Playing">
@@ -171,52 +170,52 @@
                 </div>
             </div>
 
-            <!-- CENTER: playback controls + progress bar (desktop) -->
+            <!-- Center part including playback controls + progress bar (desktop) -->
             <div class="player-controls">
                 <div class="controls">
                     <button id="shuffle" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
-                    <button id="prev"    title="Previous"><i class="fa-solid fa-backward-step"></i></button>
-                    <button id="play"    title="Play"><i class="fa-solid fa-circle-play"></i></button>
-                    <button id="next"    title="Next"><i class="fa-solid fa-forward-step"></i></button>
-                    <button id="loop"    title="Repeat"><i class="fa-solid fa-repeat"></i></button>
+                    <button id="prev" title="Previous"><i class="fa-solid fa-backward-step"></i></button>
+                    <button id="play" title="Play"><i class="fa-solid fa-circle-play"></i></button>
+                    <button id="next" title="Next"><i class="fa-solid fa-forward-step"></i></button>
+                    <button id="loop" title="Repeat"><i class="fa-solid fa-repeat"></i></button>
                 </div>
                 <div class="playback-bar">
                     <span id="currentTime">0:00</span>
                     <div class="range-track-wrap">
-                        <input type="range" id="progressBar" min="0" max="100" value="0">
+                        <input type="range" id="progressBar" min="0" max="100" value="0" title="Progress Bar">
                     </div>
                     <span id="totalTime">0:00</span>
                 </div>
             </div>
 
-            <!-- MOBILE: full-width progress bar (row 2) -->
+            <!-- Progress Bar(MOBILE) -->
             <div class="mobile-progress-row">
                 <span id="mobileCurrentTime">0:00</span>
                 <div class="range-track-wrap">
-                    <input type="range" id="mobileProgressBar" min="0" max="100" value="0">
+                    <input type="range" id="mobileProgressBar" min="0" max="100" value="0" title="Progress Bar">
                 </div>
                 <span id="mobileTotalTime">0:00</span>
             </div>
 
-            <!-- RIGHT (desktop) / Row 3 (mobile): volume + lyrics -->
+            <!-- RIGHT PART(Desktop) / Volume Bar + Lyrics (Mobile)-->
             <div class="extra-controls">
-                <!-- Desktop shuffle (hidden mobile — it's in center controls) -->
+                <!-- Shuffle (DESKTOP)-->
                 <button class="mobile-extra-shuffle" id="mobileShuffleBtn" title="Shuffle">
                     <i class="fa-solid fa-shuffle"></i>
                 </button>
 
-                <!-- Volume wrapper — hover/click for vertical popup -->
+                <!-- Volume Bar Wrapper(MOBILE)-->
                 <div class="volume-wrapper" id="volumeWrapper">
                     <button class="vol-icon-btn" id="volumeIconBtn" title="Volume">
                         <i class="fa-solid fa-volume-high" id="volumeIcon"></i>
                     </button>
-                    <!-- Desktop: horizontal bar -->
+                    <!-- Volume Bar(Desktop)-->
                     <div class="desktop-vol-bar">
                         <div class="range-track-wrap">
-                            <input type="range" id="volumeBar" min="0" max="100" value="70">
+                            <input type="range" id="volumeBar" min="0" max="100" value="70" title="Volume Bar">
                         </div>
                     </div>
-                    <!-- Mobile: vertical popup -->
+                    <!-- Volume Popup(MOBILE)-->
                     <div class="vol-popup" id="volPopup">
                         <span class="vol-popup-pct" id="volPopupPct">70%</span>
                         <div class="vol-vertical-track" id="volVerticalTrack">
@@ -226,12 +225,12 @@
                     </div>
                 </div>
 
-                <!-- Mobile loop -->
+                <!-- Repeat(Mobile)-->
                 <button class="mobile-extra-loop" id="mobileLoopBtn" title="Repeat">
                     <i class="fa-solid fa-repeat"></i>
                 </button>
 
-                <!-- Lyrics button — icon only on mobile, icon+text on desktop -->
+                <!-- Lyrics Button Icon(Mobile), Icon+Text(Desktop) -->
                 <button class="lyrics-btn" id="lyricsBtn" title="Show Lyrics" disabled>
                     <i class="fa-solid fa-align-left"></i>
                     <span class="lyrics-btn-text">Lyrics</span>
@@ -247,7 +246,7 @@
                     <h3 id="lyricsSongTitle">—</h3>
                     <p id="lyricsArtistName">—</p>
                 </div>
-                <button class="lyrics-close-btn" id="lyricsCloseBtn">
+                <button class="lyrics-close-btn" id="lyricsCloseBtn" title="Close Lyrics">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
             </div>
