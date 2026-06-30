@@ -17,6 +17,13 @@ app.use('/api/user', require('./routes/userRoutes'));   // ← was missing, app.
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+const path = require('path');
+app.use(express.static(path.join(__dirname, '..')));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.resolve(__dirname, '..', 'index.html'));
+});
+
 // 404 fallback
 app.use((req, res) => res.status(404).json({ msg: `Route ${req.method} ${req.path} not found` }));
 
