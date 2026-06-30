@@ -463,9 +463,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const authH = token ? { "Authorization": "Bearer " + token } : {};
 
             const [songsRes, playlistsRes, userRes] = await Promise.all([
-                fetch(`${API_BASE_URL}/songs`).catch(() => null),
-                fetch(`${API_BASE_URL}/playlists/all`, { headers: authH }).catch(() => null),
-                fetch(`${API_BASE_URL}/auth/profile`,  { headers: authH }).catch(() => null)
+                fetch(`${API_BASE_URL}/api/songs`).catch(() => null),
+                fetch(`${API_BASE_URL}/api/playlists/all`, { headers: authH }).catch(() => null),
+                fetch(`${API_BASE_URL}/api/auth/profile`,  { headers: authH }).catch(() => null)
             ]);
 
             if (songsRes?.ok) {
