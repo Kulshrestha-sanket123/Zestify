@@ -61,3 +61,11 @@ Developed with passion for music and code.
    ```bash
    git clone [https://github.com/Kulshrestha-sanket123/Zestify.git](https://github.com/Kulshrestha-sanket123/Zestify.git)
    cd Zestify
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+
+3. **Run the application:**
+   ```bash
+   npm start
