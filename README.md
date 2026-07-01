@@ -5,7 +5,7 @@ Zestify is a full-stack web-based music streaming application designed to provid
 ---
 
 ### 🌐 Live Demo
-Check out the live version of Zestify here: [https://your-live-demo-link.com](YOUR_LIVE_DEMO_LINK)
+Check out the live version of Zestify here: https://zestify-backend-ts1c.onrender.com/
 
 ---
 
