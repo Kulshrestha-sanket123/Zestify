@@ -77,6 +77,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (volumeBar)       { audio.volume = (volumeBar.value / 100); updateRangeFill(volumeBar); }
 
 
+    // ==========================================================
+    // NEW: TOAST NOTIFICATION HELPER (replaces alert())
+    // ==========================================================
+    const appToast     = document.getElementById("appToast");
+    const appToastText = document.getElementById("appToastText");
+    let _toastTimer = null;
+
+    function showToast(message, isError = false) {
+        if (!appToast) return;
+        clearTimeout(_toastTimer);
+        appToastText.textContent = message;
+        appToast.classList.toggle("toast-error", isError);
+        const icon = appToast.querySelector("i");
+        if (icon) icon.className = isError ? "fa-solid fa-circle-exclamation" : "fa-solid fa-circle-check";
+        appToast.classList.add("show");
+        _toastTimer = setTimeout(() => appToast.classList.remove("show"), 2600);
+    }
+
+
     //Session save & Restore
     function saveSession() {
         const now = Date.now();
@@ -341,6 +360,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
+    // ==========================================================
+    // NEW: helper to check if a track is in ANY playlist
+    // ==========================================================
+    function isTrackInAnyPlaylist(trackId) {
+        return Object.values(dbPlaylists).some(arr => arr.includes(trackId));
+    }
+
+    function refreshAddIconStates() {
+        document.querySelectorAll(".add-icon").forEach(icon => {
+            const id = icon.getAttribute("data-id");
+            icon.classList.toggle("in-playlist", isTrackInAnyPlaylist(id));
+        });
+    }
+
+
     // PLAY STATE SYNC
     function syncPlayingUI(playing) {
         isPlaying = playing;
@@ -398,6 +432,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const isLiked  = dbLikedSongsIds.includes(trackId);
             const isActive = trackId === activeId && isPlaying;
             const cover    = getCover(t);
+            const inPlaylist = isTrackInAnyPlaylist(trackId);
             return `
                 <div class="song-card${isActive ? ' card-active' : ''}" data-id="${trackId}">
                     <div class="card-img${cover ? '' : ' img-placeholder'}">
@@ -410,8 +445,8 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <span></span><span></span><span></span>
                             </div>
                         </div>
-                        <div class="add-icon" data-id="${trackId}" title="Add to Playlist">
-                            <i class="fa-solid fa-plus"></i>
+                        <div class="add-icon${inPlaylist ? ' in-playlist' : ''}" data-id="${trackId}" title="${inPlaylist ? 'In a playlist' : 'Add to Playlist'}">
+                            <i class="fa-solid ${inPlaylist ? 'fa-check' : 'fa-plus'}"></i>
                         </div>
                         <div class="card-img-heart-wrap">
                             <i class="fa-solid fa-heart heart-icon ${isLiked ? 'liked' : ''}" data-id="${trackId}"></i>
@@ -1039,6 +1074,182 @@ document.addEventListener("DOMContentLoaded", () => {
     lyricsCloseBtn.addEventListener("click", closeLyricsPanel);
 
 
+    // ==========================================================
+    // NEW: ADD-TO-PLAYLIST MODAL LOGIC
+    // ==========================================================
+    const addToPlaylistModal = document.getElementById("addToPlaylistModal");
+    const modalPlaylistList  = document.getElementById("modalPlaylistList");
+    const modalCancelBtn     = document.getElementById("modalCancelBtn");
+    let _modalTargetTrackId  = null;
+    let _modalNumberBuffer    = "";
+    let _modalNumberTimer     = null;
+
+    function openAddToPlaylistModal(trackId) {
+        _modalTargetTrackId = trackId;
+        const names = Object.keys(dbPlaylists);
+
+        if (names.length === 0) {
+            showToast("Create a playlist first.", true);
+            return;
+        }
+
+        modalPlaylistList.innerHTML = names.map((pName, idx) => {
+            const num = idx + 1;
+            const already = dbPlaylists[pName].includes(trackId);
+            return `
+                <div class="modal-playlist-item${already ? ' already-added' : ''}" data-num="${num}" data-name="${escapeHtml(pName)}">
+                    <span class="modal-playlist-number">${num}</span>
+                    <span class="modal-playlist-name">${escapeHtml(pName)}</span>
+                    ${already ? '<i class="fa-solid fa-check modal-playlist-check"></i>' : ''}
+                </div>`;
+        }).join('');
+
+        addToPlaylistModal.classList.add("show");
+        _modalNumberBuffer = "";
+    }
+
+    function closeAddToPlaylistModal() {
+        addToPlaylistModal.classList.remove("show");
+        _modalTargetTrackId = null;
+        _modalNumberBuffer = "";
+    }
+
+    async function handlePlaylistPick(pName) {
+        const trackId = _modalTargetTrackId;
+        if (!trackId || !pName || dbPlaylists[pName] === undefined) return;
+
+        if (dbPlaylists[pName].includes(trackId)) {
+            showToast(`Already in "${pName}".`, true);
+            closeAddToPlaylistModal();
+            return;
+        }
+
+        dbPlaylists[pName].push(trackId);
+        await addTrackToPlaylistOnDB(pName, trackId);
+        refreshAddIconStates();
+        showToast(`Added to "${pName}".`);
+        closeAddToPlaylistModal();
+    }
+
+    modalCancelBtn.addEventListener("click", closeAddToPlaylistModal);
+    addToPlaylistModal.addEventListener("click", (e) => {
+        if (e.target === addToPlaylistModal) closeAddToPlaylistModal();
+        const item = e.target.closest(".modal-playlist-item");
+        if (item) handlePlaylistPick(item.getAttribute("data-name"));
+    });
+
+    // Type a number + Enter to pick the playlist by its number
+    document.addEventListener("keydown", (e) => {
+        if (!addToPlaylistModal.classList.contains("show")) return;
+
+        if (e.key === "Escape") { closeAddToPlaylistModal(); return; }
+
+        if (e.key >= "0" && e.key <= "9") {
+            _modalNumberBuffer += e.key;
+            clearTimeout(_modalNumberTimer);
+            _modalNumberTimer = setTimeout(() => { _modalNumberBuffer = ""; }, 1200);
+            return;
+        }
+
+        if (e.key === "Enter" && _modalNumberBuffer) {
+            const num = parseInt(_modalNumberBuffer, 10);
+            const item = modalPlaylistList.querySelector(`.modal-playlist-item[data-num="${num}"]`);
+            if (item) {
+                handlePlaylistPick(item.getAttribute("data-name"));
+            } else {
+                showToast(`No playlist numbered ${num}.`, true);
+            }
+            _modalNumberBuffer = "";
+        }
+    });
+
+
+    // ==========================================================
+    // NEW: "ADD SONG TO THIS PLAYLIST" PICKER (inside a playlist view)
+    // ==========================================================
+    function openAddSongToCurrentPlaylistModal(pName) {
+        const existing = dbPlaylists[pName] || [];
+        const candidates = dbTracks.filter(t => !existing.includes(t._id || t.id));
+
+        if (candidates.length === 0) {
+            showToast("All songs are already in this playlist.", true);
+            return;
+        }
+
+        modalPlaylistList.innerHTML = candidates.map((t, idx) => {
+            const num = idx + 1;
+            const id  = t._id || t.id;
+            return `
+                <div class="modal-playlist-item" data-num="${num}" data-track-id="${id}">
+                    <span class="modal-playlist-number">${num}</span>
+                    <span class="modal-playlist-name">${escapeHtml(t.songName || 'Unknown')} — ${escapeHtml(t.artistName || 'Unknown')}</span>
+                </div>`;
+        }).join('');
+
+        document.querySelector(".modal-title").textContent = `Add a Song to "${pName}"`;
+        document.querySelector(".modal-subtitle").textContent = "Tap a song, or type its number and press Enter.";
+        addToPlaylistModal.classList.add("show");
+        _modalNumberBuffer = "";
+
+        addToPlaylistModal.dataset.mode = "add-song";
+        addToPlaylistModal.dataset.playlistName = pName;
+    }
+
+    // Extend click + enter handling for add-song mode
+    addToPlaylistModal.addEventListener("click", async (e) => {
+        if (addToPlaylistModal.dataset.mode !== "add-song") return;
+        const item = e.target.closest(".modal-playlist-item");
+        if (!item) return;
+        const trackId = item.getAttribute("data-track-id");
+        const pName   = addToPlaylistModal.dataset.playlistName;
+        await addSongToPlaylistAndRefresh(pName, trackId);
+    });
+
+    document.addEventListener("keydown", async (e) => {
+        if (!addToPlaylistModal.classList.contains("show")) return;
+        if (addToPlaylistModal.dataset.mode !== "add-song") return;
+        if (e.key === "Enter" && _modalNumberBuffer) {
+            const num = parseInt(_modalNumberBuffer, 10);
+            const item = modalPlaylistList.querySelector(`.modal-playlist-item[data-num="${num}"]`);
+            if (item) {
+                const trackId = item.getAttribute("data-track-id");
+                const pName   = addToPlaylistModal.dataset.playlistName;
+                await addSongToPlaylistAndRefresh(pName, trackId);
+            } else {
+                showToast(`No song numbered ${num}.`, true);
+            }
+            _modalNumberBuffer = "";
+        }
+    });
+
+    async function addSongToPlaylistAndRefresh(pName, trackId) {
+        if (!pName || !trackId || dbPlaylists[pName] === undefined) return;
+        if (dbPlaylists[pName].includes(trackId)) {
+            showToast("Already in this playlist.", true);
+            return;
+        }
+        dbPlaylists[pName].push(trackId);
+        await addTrackToPlaylistOnDB(pName, trackId);
+        refreshAddIconStates();
+        showToast("Song added.");
+        closeAddToPlaylistModal();
+        addToPlaylistModal.dataset.mode = "";
+        renderPlaylistInnerSections(pName, dbPlaylists[pName], false);
+    }
+
+    // Reset modal to default "add-to-playlist" mode/title when reopened normally
+    function resetModalToDefaultMode() {
+        addToPlaylistModal.dataset.mode = "";
+        document.querySelector(".modal-title").textContent = "Add to Playlist";
+        document.querySelector(".modal-subtitle").textContent = "Tap a playlist, or type its number and press Enter.";
+    }
+    const _origOpenAddToPlaylistModal = openAddToPlaylistModal;
+    openAddToPlaylistModal = function(trackId) {
+        resetModalToDefaultMode();
+        _origOpenAddToPlaylistModal(trackId);
+    };
+
+
     //Playlist Render function
     function renderPlaylistInnerSections(title, trackIdArray, isLikedView = false) {
         const listTracks = dbTracks.filter(t => trackIdArray.includes(t._id || t.id));
@@ -1062,6 +1273,13 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 </div>
             </div>
+            ${!isLikedView ? `
+            <div class="create-playlist-header">
+                <h2>Tracks</h2>
+                <button class="create-btn secondary-btn" id="addSongToPlaylistBtn" data-playlist="${escapeHtml(title)}">
+                    <i class="fa-solid fa-plus"></i> Add Song
+                </button>
+            </div>` : ''}
             <div class="playlist-section-header-grid">
                 <div>#</div><div>Title</div><div>Album</div>
                 <div class="header-clock"><i class="fa-regular fa-clock"></i></div>
@@ -1092,6 +1310,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                 <div class="track-album">${t.album || 'Single'}</div>
                                 <div class="track-row-actions">
                                     <i class="fa-solid fa-heart heart-icon ${isLiked ? 'liked' : ''}" data-id="${trackId}"></i>
+                                    ${!isLikedView ? `<i class="fa-solid fa-circle-minus remove-from-playlist-icon" data-id="${trackId}" data-playlist="${escapeHtml(title)}" title="Remove from playlist"></i>` : ''}
                                 </div>
                             </div>`;
                     }).join('')}
@@ -1221,6 +1440,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const updateLikeStatusOnDB = (id, add) => authFetch(`${API_BASE_URL}/user/like`, { method: "POST", body: JSON.stringify({ songId: id, isAdding: add }) }).catch(console.error);
     const createPlaylistOnDB = (name) => authFetch(`${API_BASE_URL}/playlists`, { method: "POST", body: JSON.stringify({ name }) }).catch(console.error);
     const addTrackToPlaylistOnDB = (pName, id) => authFetch(`${API_BASE_URL}/playlists/add`, { method: "PUT",  body: JSON.stringify({ playlistName: pName, trackId: id }) }).catch(console.error);
+    const removeTrackFromPlaylistOnDB = (pName, id) => authFetch(`${API_BASE_URL}/playlists/remove`, { method: "PUT", body: JSON.stringify({ playlistName: pName, trackId: id }) }).catch(console.error);
 
 
     // GLOBAL EVENT DELEGATION
@@ -1242,8 +1462,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 await createPlaylistOnDB(name.trim());
                 renderPlaylistsDirectory();
             } else if(name?.trim()) {
-                alert("Playlist already exists.");
+                showToast("Playlist already exists.", true);
             }
+            return;
+        }
+
+        // NEW: "Add Song" button inside a playlist view
+        const addSongBtn = e.target.closest("#addSongToPlaylistBtn");
+        if (addSongBtn) {
+            const pName = addSongBtn.getAttribute("data-playlist");
+            openAddSongToCurrentPlaylistModal(pName);
             return;
         }
 
@@ -1273,27 +1501,33 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
+        // NEW: remove-from-playlist icon click (inside a playlist's track list)
+        const removeIcon = e.target.closest(".remove-from-playlist-icon");
+        if (removeIcon) {
+            e.stopPropagation();
+            const id    = removeIcon.getAttribute("data-id");
+            const pName = removeIcon.getAttribute("data-playlist");
+            if (dbPlaylists[pName]) {
+                dbPlaylists[pName] = dbPlaylists[pName].filter(i => i !== id);
+                await removeTrackFromPlaylistOnDB(pName, id);
+                refreshAddIconStates();
+                showToast("Removed from playlist.");
+                renderPlaylistInnerSections(pName, dbPlaylists[pName], false);
+            }
+            return;
+        }
+
+        // NEW: add-icon click now opens the custom modal instead of prompt()
         const addIcon = e.target.closest(".add-icon");
         if(addIcon) {
             e.stopPropagation();
-            const id    = addIcon.getAttribute("data-id");
+            const id = addIcon.getAttribute("data-id");
             const names = Object.keys(dbPlaylists);
             if(!names.length) {
-                alert("Create a playlist first.");
+                showToast("Create a playlist first.", true);
                 return;
             }
-            const target = prompt(`Playlists: ${names.join(", ")}\n\nEnter playlist name:`);
-            if(target && dbPlaylists[target] !== undefined) {
-                if(!dbPlaylists[target].includes(id)) {
-                    dbPlaylists[target].push(id);
-                    await addTrackToPlaylistOnDB(target, id);
-                    alert(`Added to "${target}".`);
-                } else {
-                    alert("Already in playlist.");
-                }
-            } else if(target) {
-                alert(`"${target}" not found.`);
-            }
+            openAddToPlaylistModal(id);
             return;
         }
 
