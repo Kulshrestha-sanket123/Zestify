@@ -37,6 +37,12 @@ This project significantly improved my technical skills in:
 * **Data Handling**: Managing asynchronous data flow between the MongoDB database and the client-side frontend.
 * **DOM Manipulation**: Utilizing advanced techniques for dynamic UI updates based on real-time audio playback progress.
 
+## 📸 Project Screenshots
+
+| Home Page | Liked Songs | Lyrics Panel | Playlist | Profile |
+| :---: | :---: | :---: | :---: | :---: |
+| ![Home](images/homepage.png) | ![Liked](images/likedSongs.png) | ![Lyrics](images/lyrics.png) | ![Playlist](images/playlist.png) | ![Profile](images/profile.png) |
+
 ## 👨‍💻 Author
 
 Sanket Kulshrestha
